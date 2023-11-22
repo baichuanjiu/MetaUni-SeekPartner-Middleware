@@ -1,0 +1,83 @@
+version: '3.4'
+
+services:
+
+  seekPartner_consul_server1:
+    image: consul:1.15.4
+    container_name: seekPartner_consul_server1
+    command: agent -server -client=0.0.0.0 -bootstrap -node=seekPartner_consul_server1 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_consul_server2:
+    depends_on:
+      - seekPartner_consul_server1
+    image: consul:1.15.4
+    container_name: seekPartner_consul_server2
+    command: agent -server -client=0.0.0.0 -retry-join=seekPartner_consul_server1 -node=seekPartner_consul_server2 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_consul_server3:
+    depends_on:
+      - seekPartner_consul_server1
+    image: consul:1.15.4
+    container_name: seekPartner_consul_server3
+    command: agent -server -client=0.0.0.0 -retry-join=seekPartner_consul_server1 -node=seekPartner_consul_server3 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_consul_client1:
+    depends_on:
+      - seekPartner_consul_server1
+    image: consul:1.15.4
+    container_name: seekPartner_consul_client1
+    ports:
+      - 8530:8500
+    command: agent -ui -client=0.0.0.0 -retry-join=seekPartner_consul_server1 -node=seekPartner_consul_client1 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_minio:
+    image: minio/minio:latest
+    container_name: SeekPartner_MinIO
+    ports:
+      - 9300:9000
+      - 9390:9090
+    environment:
+      - TZ=Asia/Shanghai
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=Password123
+    volumes:
+      - .\MinIO\data:/data
+      - .\MinIO\config:/root/.minio
+    command: server /data --console-address ":9090"
+
+  seekPartner_redis:
+    image: redis:alpine
+    container_name: SeekPartner_Redis
+    ports:
+      - 6979:6379
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - .\Redis\redis.conf:/etc/redis/redis.conf
+      - .\Redis\data:/data
+    logging:
+      options:
+        max-size: 100m
+        max-file: 2
+    command: redis-server /etc/redis/redis.conf  --appendonly yes  --requirepass Password123
+
+  seekPartner_seq:
+    image: datalust/seq
+    container_name: SeekPartner_Seq
+    ports:
+      - 8981:80
+      - 5841:5341
+    environment:
+      - TZ=Asia/Shanghai
+      - ACCEPT_EULA=Y
+      - SEQ_CACHE_SYSTEMTAMTARGET=0
+    volumes:
+      - .\Seq\data:/data

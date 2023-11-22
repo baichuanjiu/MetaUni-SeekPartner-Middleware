@@ -1,0 +1,39 @@
+version: '3.4'
+
+services:
+
+  seekPartner_consul_server1:
+    image: consul:1.15.4
+    container_name: seekPartner_consul_server1
+    command: agent -server -client=0.0.0.0 -bootstrap -node=seekPartner_consul_server1 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_consul_server2:
+    depends_on:
+      - seekPartner_consul_server1
+    image: consul:1.15.4
+    container_name: seekPartner_consul_server2
+    command: agent -server -client=0.0.0.0 -retry-join=seekPartner_consul_server1 -node=seekPartner_consul_server2 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_consul_server3:
+    depends_on:
+      - seekPartner_consul_server1
+    image: consul:1.15.4
+    container_name: seekPartner_consul_server3
+    command: agent -server -client=0.0.0.0 -retry-join=seekPartner_consul_server1 -node=seekPartner_consul_server3 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
+
+  seekPartner_consul_client1:
+    depends_on:
+      - seekPartner_consul_server1
+    image: consul:1.15.4
+    container_name: seekPartner_consul_client1
+    ports:
+      - 8530:8500
+    command: agent -ui -client=0.0.0.0 -retry-join=seekPartner_consul_server1 -node=seekPartner_consul_client1 -datacenter=dc1
+    environment:
+      - TZ=Asia/Shanghai
